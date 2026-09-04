@@ -61,14 +61,14 @@
     font-size:15px;font-weight:800;color:var(--accent);opacity:0;transform:translateY(-6px);
     transition:.18s;text-shadow:0 2px 6px rgba(0,0,0,.6)}
   #combo.on{opacity:1;transform:none}
-  #sound{position:absolute;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);right:14px;
-    width:42px;height:42px;border-radius:14px;border:1px solid rgba(255,255,255,.16);
-    background:rgba(8,16,14,.5);backdrop-filter:blur(6px);color:#fff;font-size:17px;
-    pointer-events:auto;display:grid;place-items:center;opacity:.7}
-  #quit{position:absolute;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);left:14px;
-    height:42px;padding:0 16px;border-radius:14px;border:1px solid rgba(255,255,255,.16);
-    background:rgba(8,16,14,.5);backdrop-filter:blur(6px);color:#fff;font-size:12px;font-weight:800;
-    font-family:var(--font);pointer-events:auto;opacity:.6}
+  #sys{position:absolute;top:calc(env(safe-area-inset-top,0px) + 12px);left:50%;
+    transform:translateX(-50%);display:flex;gap:7px}
+  #sys button{height:34px;border-radius:11px;border:1px solid rgba(255,255,255,.15);
+    background:rgba(8,14,18,.55);backdrop-filter:blur(6px);color:#fff;font-size:12px;font-weight:800;
+    font-family:var(--font);pointer-events:auto;opacity:.62;display:grid;place-items:center}
+  #sound{width:34px;font-size:15px}
+  #quit{padding:0 13px}
+  #quit.warn{opacity:1;color:#ff9d7a;border-color:rgba(255,157,122,.6)}
   #hint{position:absolute;left:0;right:0;bottom:calc(env(safe-area-inset-bottom,0px) + 74px);
     text-align:center;font-size:12px;font-weight:700;opacity:0;transition:opacity .4s;
     letter-spacing:.08em;text-shadow:0 2px 8px rgba(0,0,0,.8)}
@@ -76,9 +76,10 @@
 
   /* ── 画面 ── */
   .screen{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;
-    align-items:center;padding:26px;pointer-events:auto;
-    transition:opacity .45s ease, transform .45s ease}
-  .screen.hide{opacity:0;transform:scale(1.06);pointer-events:none}
+    align-items:center;padding:26px;pointer-events:auto;visibility:visible;
+    transition:opacity .45s ease, transform .45s ease, visibility 0s linear .45s}
+  .screen.hide{opacity:0;transform:scale(1.06);pointer-events:none;visibility:hidden}
+  .screen.hide *{pointer-events:none !important}
   .kicker{font-size:11px;font-weight:800;letter-spacing:.42em;color:var(--wakana);
     text-indent:.42em;margin-bottom:14px;opacity:.85}
   h1{margin:0;font-size:clamp(42px,13vw,74px);font-weight:900;line-height:1.02;text-align:center;letter-spacing:.04em;
@@ -89,7 +90,7 @@
   .menu{margin-top:30px;width:min(340px,90vw);display:flex;flex-direction:column;gap:10px}
   .item{display:flex;align-items:center;gap:13px;padding:16px 17px;border-radius:16px;
     background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);
-    font-weight:800;font-size:16px;transition:.16s;pointer-events:auto}
+    font-weight:800;font-size:16px;transition:.16s}
   .item .veg{font-size:23px;line-height:1}
   .item .sub{margin-left:auto;font-size:10.5px;font-weight:700;opacity:.5;letter-spacing:.06em;text-align:right;line-height:1.4}
   .item:active{transform:scale(.975)}
@@ -122,8 +123,9 @@
   /* 遊びかた */
   #howto{position:absolute;inset:auto 0 0 0;padding:24px 26px calc(env(safe-area-inset-bottom,0px) + 26px);
     background:linear-gradient(to top,rgba(4,8,7,.97),rgba(4,8,7,.9) 70%,rgba(4,8,7,0));
-    transform:translateY(102%);transition:transform .38s cubic-bezier(.2,.9,.3,1);pointer-events:auto}
-  #howto.on{transform:none}
+    transform:translateY(102%);visibility:hidden;pointer-events:none;
+    transition:transform .38s cubic-bezier(.2,.9,.3,1), visibility 0s linear .38s}
+  #howto.on{transform:none;visibility:visible;pointer-events:auto;transition:transform .38s cubic-bezier(.2,.9,.3,1)}
   #howto h2{margin:0 0 12px;font-size:20px;font-weight:900;letter-spacing:.04em}
   #howto p{margin:0 0 6px;font-size:13.5px;line-height:1.85;opacity:.8}
   #howto .go{margin-top:18px;width:100%}
@@ -146,8 +148,7 @@
     <div id="stepLabel"></div>
     <div id="combo"></div>
     <div id="hint"></div>
-    <button id="sound">🔊</button>
-    <button id="quit">やめる</button>
+    <div id="sys"><button id="quit">やめる</button><button id="sound">🔊</button></div>
   </div>
 
   <div class="screen" id="title">
@@ -197,7 +198,7 @@ const sctx=splatCanvas.getContext('2d');
 const fctx=fxCanvas.getContext('2d');
 
 const renderer=new THREE.WebGLRenderer({canvas:glCanvas,antialias:true,alpha:true,powerPreference:'high-performance'});
-const DPR=Math.min(window.devicePixelRatio||1,2);
+const DPR=Math.min(window.devicePixelRatio||1,1.75);
 renderer.setPixelRatio(DPR);
 renderer.outputEncoding=THREE.sRGBEncoding;
 renderer.toneMapping=THREE.ACESFilmicToneMapping;
@@ -207,7 +208,7 @@ renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 
 const scene=new THREE.Scene();
 scene.fog=new THREE.Fog(0x08110e,20,52);
-const camera=new THREE.PerspectiveCamera(46,1,0.1,140);
+const camera=new THREE.PerspectiveCamera(46,1,0.3,620);
 
 (function(){ // 疑似スタジオ環境光
   const c=document.createElement('canvas');c.width=256;c.height=128;
@@ -375,7 +376,9 @@ const snd={
   knife(){noise(.28,'bandpass',3800,600,.22,2.2);},
   chop(){noise(.14,'lowpass',1800,240,.3,1);tone(260,90,.14,.18,'triangle');},
   good(n){[0,1].forEach((k,i)=>setTimeout(()=>tone(700+k*260+n*90,1100+k*260,.14,.12,'triangle'),i*70));},
-  tick(){tone(1400,1400,.04,.05,'square');}
+  tick(){tone(1400,1400,.04,.05,'square');},
+  cheer(){noise(1.5,'bandpass',600,1500,.16,.5);noise(1.2,'highpass',1800,900,.09,.6);
+    [0,1,2].forEach(function(k){setTimeout(function(){noise(.6,'bandpass',900+k*400,500,.1,.8);},220*k+180);});}
 };
 
 /* ── 汁ハネ／画面演出 ── */
@@ -461,7 +464,7 @@ function snapCam(){camCur.copy(camWant);lookCur.copy(lookWant);fovCur=fovWant;ca
 const G=17.5;
 let state='title',mode=null,score=0,shown=0,misses=0,elapsed=0;
 let timeScale=1,tsTarget=1,slowUntil=0;
-const best={yasai:0,tamago:0,sakana:0};
+const best={yasai:0,homerun:0,racing:0};
 function slowmo(scale,dur){tsTarget=scale;slowUntil=elapsed+dur;}
 function addScore(v){score+=v;}
 
@@ -515,6 +518,7 @@ function showStage(id){
   for(const k in MODES)if(MODES[k].root)MODES[k].root.visible=(k===id);
 }
 function openHowto(id){
+  if(state==='play')return;
   pendingMode=id;const m=MODES[id];
   document.getElementById('htTitle').textContent=m.label;
   document.getElementById('htBody').innerHTML=m.howto;
@@ -545,10 +549,10 @@ function gameOver(titleText,stats){
   state='over';
   hud.classList.remove('on');
   const id=mode.id;
-  best[id]=Math.max(best[id],score);saveBest();
+  best[id]=Math.max(best[id]||0,score);saveBest();
   document.getElementById('overTitle').textContent=titleText;
   document.getElementById('finalScore').textContent=score;
-  document.getElementById('bestScore').textContent='ハイスコア '+best[id];
+  document.getElementById('bestScore').textContent='ハイスコア '+(best[id]||0);
   document.getElementById('stats').textContent=stats||(mode&&mode.overStats?mode.overStats():'');
   setTimeout(()=>overScreen.classList.remove('hide'),640);
   slowmo(.35,1.2);
@@ -912,7 +916,7 @@ MODES.yasai={
   howto:'<p>飛んでくる野菜を指でスワイプして斬る。</p><p>3つ以上まとめて斬ると<b>れんぎり</b>ボーナス。きんのトマトは特大点。</p><p>爆弾を斬ったら即おしまい。野菜を3つ落としてもおしまい。</p>',
   enter(isDemo){
     demo=isDemo;clear();
-    scene.fog.near=20;scene.fog.far=52;
+    scene.fog.near=20;scene.fog.far=52;renderer.shadowMap.enabled=true;
     back.visible=true;glow.visible=true;dust.visible=true;
     nextWave=isDemo?.6:.4;demoNext=1.1;demoSwipe=null;sliced=0;maxCombo=0;dolly=1.2;
     if(!isDemo)hint('スワイプして斬る');
@@ -965,132 +969,288 @@ MODES.yasai={
 })();
 
 /* ══════════════════════════════════════════
-   ② スッキリ！ホームラン（バッティング）
+   ② スッキリ！ホームラン（ホームラン競走）
    ══════════════════════════════════════════ */
 (function(){
 const root=new THREE.Group();root.visible=false;scene.add(root);
-const GG=9.8, PLATE_Z=.25, MACHINE_Z=-16.5, FENCE_Z=-58, FENCE_H=3.4;
+const GG=9.8, PITCH_G=4.2, HIT_G=18, PLATE_Z=.25, MOUND_Z=-18.44, FENCE_R=52, FENCE_H=3.6;
+const LAG=.085, WIN=2.2, PERF=.9;
+const D2R=Math.PI/180;
 
-/* 芝 */
+/* ── 夜空 ── */
+(function(){
+  const c=document.createElement('canvas');c.width=8;c.height=256;
+  const g=c.getContext('2d');
+  const gr=g.createLinearGradient(0,0,0,256);
+  gr.addColorStop(0,'#05070e');gr.addColorStop(.55,'#0b1526');gr.addColorStop(.8,'#16283c');
+  gr.addColorStop(1,'#22384a');
+  g.fillStyle=gr;g.fillRect(0,0,8,256);
+  const sky=new THREE.Mesh(new THREE.SphereGeometry(220,24,16),
+    new THREE.MeshBasicMaterial({map:texFrom(c),side:THREE.BackSide,fog:false}));
+  root.add(sky);
+})();
+
+/* ── 芝 ── */
 const turfTex=(function(){
   const S=256,c=cvs(S),g=c.getContext('2d');
-  g.fillStyle='#2f6b34';g.fillRect(0,0,S,S);
-  for(let i=0;i<S;i+=16){g.fillStyle=(i/16)%2?'rgba(255,255,255,.055)':'rgba(0,0,0,.06)';g.fillRect(0,i,S,16);}
-  noiseOver(g,S,900,.09);
-  const t=texFrom(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(9,11);return t;
+  g.fillStyle='#1d4a2a';g.fillRect(0,0,S,S);
+  for(let i=0;i<S;i+=32){g.fillStyle=(i/32)%2?'rgba(255,255,255,.035)':'rgba(0,0,0,.10)';g.fillRect(0,i,S,32);}
+  for(let i=0;i<1400;i++){g.fillStyle='rgba('+(20+Math.random()*70|0)+',90,45,.12)';
+    g.fillRect(Math.random()*S,Math.random()*S,2,3);}
+  const t=texFrom(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(7,8);return t;
 })();
-const turf=new THREE.Mesh(new THREE.PlaneGeometry(150,200),
-  new THREE.MeshStandardMaterial({map:turfTex,roughness:.96}));
-turf.rotation.x=-Math.PI/2;turf.position.z=-50;turf.receiveShadow=true;root.add(turf);
-const dirt=new THREE.Mesh(new THREE.CircleGeometry(5.2,40),
-  new THREE.MeshStandardMaterial({color:0x8a6141,roughness:1}));
-dirt.rotation.x=-Math.PI/2;dirt.position.set(0,.012,0);dirt.receiveShadow=true;root.add(dirt);
-(function(){ // ホームベース
+const turf=new THREE.Mesh(new THREE.CircleGeometry(120,64),
+  new THREE.MeshStandardMaterial({map:turfTex,roughness:.97}));
+turf.rotation.x=-Math.PI/2;turf.receiveShadow=true;root.add(turf);
+
+/* ── 内野の土と塁 ── */
+const dirtMat=new THREE.MeshStandardMaterial({color:0x24592f,roughness:.98});
+const dirtMat2=new THREE.MeshStandardMaterial({color:0x1a4025,roughness:.98});
+(function(){
+  // 内野の弧
+  const arc=new THREE.Mesh(new THREE.CircleGeometry(29,48,0,Math.PI),dirtMat);
+  arc.rotation.x=-Math.PI/2;arc.position.y=.012;arc.receiveShadow=true;root.add(arc);
+  // 内野の芝（ダイヤ形）
+  const B=27.4/Math.SQRT2;
+  const sh=new THREE.Shape();
+  sh.moveTo(0,-4.6);sh.lineTo(B+3.4,-(B+3.4));sh.lineTo(0,-(27.4+4.6));sh.lineTo(-(B+3.4),-(B+3.4));sh.closePath();
+  const gd=new THREE.Mesh(new THREE.ShapeGeometry(sh),
+    new THREE.MeshStandardMaterial({map:turfTex,roughness:.97}));
+  gd.rotation.x=-Math.PI/2;gd.position.y=.02;root.add(gd);
+  // 塁間の土
+  const bases=[[B,-B],[0,-27.4],[-B,-B]];
+  const pts=[[0,0]].concat(bases).concat([[0,0]]);
+  for(let i=0;i<pts.length-1;i++){
+    const a=pts[i],b=pts[i+1];
+    const dx=b[0]-a[0],dz=b[1]-a[1],len=Math.hypot(dx,dz);
+    const m=new THREE.Mesh(new THREE.PlaneGeometry(1.9,len),dirtMat2);
+    m.rotation.x=-Math.PI/2;m.rotation.z=-Math.atan2(dx,dz);
+    m.position.set((a[0]+b[0])/2,.03,(a[1]+b[1])/2);root.add(m);
+  }
+  // ベース
+  const bm=new THREE.MeshStandardMaterial({color:0xf6f6f0,roughness:.6});
+  for(const b of bases){
+    const m=new THREE.Mesh(new THREE.BoxGeometry(.42,.06,.42),bm);
+    m.position.set(b[0],.05,b[1]);m.castShadow=true;root.add(m);
+  }
+  // 本塁の土＆ホームベース＆打席
+  const hc=new THREE.Mesh(new THREE.CircleGeometry(5.2,36),dirtMat2);
+  hc.rotation.x=-Math.PI/2;hc.position.set(0,.035,.4);root.add(hc);
   const s=new THREE.Shape();
   s.moveTo(-.28,-.28);s.lineTo(.28,-.28);s.lineTo(.28,.16);s.lineTo(0,.42);s.lineTo(-.28,.16);s.closePath();
-  const m=new THREE.Mesh(new THREE.ShapeGeometry(s),new THREE.MeshStandardMaterial({color:0xf2f2ee,roughness:.6}));
-  m.rotation.x=-Math.PI/2;m.position.set(0,.02,PLATE_Z);root.add(m);
-})();
-/* フェンス・スタンド・照明 */
-const fence=new THREE.Mesh(new THREE.BoxGeometry(76,FENCE_H,.5),
-  new THREE.MeshStandardMaterial({color:0x1d4a2a,roughness:.85}));
-fence.position.set(0,FENCE_H/2,FENCE_Z);fence.receiveShadow=true;root.add(fence);
-const fenceTop=new THREE.Mesh(new THREE.BoxGeometry(76,.28,.7),
-  new THREE.MeshStandardMaterial({color:0xf5d13a,emissive:0x2a2000,roughness:.5}));
-fenceTop.position.set(0,FENCE_H+.1,FENCE_Z);root.add(fenceTop);
-const stand=new THREE.Mesh(new THREE.BoxGeometry(84,11,10),
-  new THREE.MeshStandardMaterial({color:0x161c26,roughness:1}));
-stand.position.set(0,5,FENCE_Z-6);root.add(stand);
-(function(){ // 観客のドット
-  const S=256,c=cvs(S),g=c.getContext('2d');
-  g.fillStyle='#10151d';g.fillRect(0,0,S,S);
-  for(let i=0;i<2600;i++){
-    g.fillStyle='hsla('+(Math.random()*360|0)+',45%,'+(28+Math.random()*38|0)+'%,'+(.35+Math.random()*.5)+')';
-    g.beginPath();g.arc(Math.random()*S,Math.random()*S*.86+S*.07,1.6+Math.random()*1.6,0,6.283);g.fill();
+  const hp=new THREE.Mesh(new THREE.ShapeGeometry(s),
+    new THREE.MeshStandardMaterial({color:0xf6f6f0,roughness:.5}));
+  hp.rotation.x=-Math.PI/2;hp.position.set(0,.06,PLATE_Z);root.add(hp);
+  const lineMat=new THREE.MeshBasicMaterial({color:0xf2f2ea});
+  for(const sx of [-1,1]){ // 打席
+    const bx=new THREE.Mesh(new THREE.RingGeometry(0,1,4),lineMat);
+    void bx;
+    for(const seg of [[sx*.62,-.7,1.85,.09],[sx*1.72,-.7,1.85,.09],[sx*1.17,.18,.09,1.16],[sx*1.17,-1.58,.09,1.16]]){
+      const q=new THREE.Mesh(new THREE.PlaneGeometry(seg[2],seg[3]),lineMat);
+      q.rotation.x=-Math.PI/2;q.position.set(seg[0],.065,seg[1]+PLATE_Z);root.add(q);
+    }
   }
-  const t=texFrom(c);t.wrapS=THREE.RepeatWrapping;t.repeat.set(5,1);
-  const m=new THREE.Mesh(new THREE.PlaneGeometry(84,10),
-    new THREE.MeshBasicMaterial({map:t}));
-  m.position.set(0,5.6,FENCE_Z-1.2);root.add(m);
+  // ファウルライン
+  for(const sx of [-1,1]){
+    const L=FENCE_R+4;
+    const m=new THREE.Mesh(new THREE.PlaneGeometry(.16,L),lineMat);
+    m.rotation.x=-Math.PI/2;m.rotation.z=sx*Math.PI/4;
+    m.position.set(sx*L/2/Math.SQRT2,.07,-L/2/Math.SQRT2);root.add(m);
+  }
+  // マウンド
+  const md=new THREE.Mesh(new THREE.CylinderGeometry(2.8,3.1,.3,32),dirtMat2);
+  md.position.set(0,.1,MOUND_Z);md.receiveShadow=true;md.castShadow=true;root.add(md);
+  const rub=new THREE.Mesh(new THREE.BoxGeometry(.62,.06,.16),bm);
+  rub.position.set(0,.26,MOUND_Z+.2);root.add(rub);
 })();
-const hrPanelTex=(function(){
-  const c=document.createElement('canvas');c.width=512;c.height=256;
-  const g=c.getContext('2d');
-  g.fillStyle='#101820';g.fillRect(0,0,512,256);
-  g.strokeStyle='#ffd23a';g.lineWidth=10;g.strokeRect(12,12,488,232);
-  g.fillStyle='#ffd23a';g.font='900 92px sans-serif';g.textAlign='center';g.textBaseline='middle';
-  g.fillText('ホームラン',256,112);
-  g.fillStyle='#8fe044';g.font='900 38px sans-serif';
-  g.fillText('HOME RUN',256,192);
-  return texFrom(c);
+
+/* ── 外野フェンス（円弧） ── */
+const TH0=135*D2R, THL=90*D2R;
+(function(){
+  const wall=new THREE.Mesh(
+    new THREE.CylinderGeometry(FENCE_R,FENCE_R,FENCE_H,72,1,true,TH0,THL),
+    new THREE.MeshStandardMaterial({color:0x1b4a2b,roughness:.9,side:THREE.DoubleSide}));
+  wall.position.y=FENCE_H/2;wall.receiveShadow=true;root.add(wall);
+  const rail=new THREE.Mesh(
+    new THREE.CylinderGeometry(FENCE_R+.06,FENCE_R+.06,.34,72,1,true,TH0,THL),
+    new THREE.MeshStandardMaterial({color:0xf5d13a,emissive:0x231a00,roughness:.5,side:THREE.DoubleSide}));
+  rail.position.y=FENCE_H+.14;root.add(rail);
+  // スタンド（外に向かって広がる）
+  const stand=new THREE.Mesh(
+    new THREE.CylinderGeometry(FENCE_R+16,FENCE_R+1.5,14,72,1,true,(180-58)*D2R,116*D2R),
+    new THREE.MeshBasicMaterial({map:(function(){
+      const S=256,c=cvs(S),g=c.getContext('2d');
+      g.fillStyle='#0c1119';g.fillRect(0,0,S,S);
+      for(let i=0;i<3400;i++){
+        g.fillStyle='hsla('+(Math.random()*360|0)+',40%,'+(24+Math.random()*40|0)+'%,'+(.3+Math.random()*.55)+')';
+        g.beginPath();g.arc(Math.random()*S,Math.random()*S*.9+S*.06,1.5+Math.random()*1.7,0,6.283);g.fill();
+      }
+      for(let y=18;y<S;y+=26){g.fillStyle='rgba(0,0,0,.35)';g.fillRect(0,y,S,4);}
+      const t=texFrom(c);t.wrapS=THREE.RepeatWrapping;t.repeat.set(9,1);return t;
+    })(),side:THREE.DoubleSide}));
+  stand.position.y=FENCE_H+6.4;root.add(stand);
+  const roof=new THREE.Mesh(
+    new THREE.CylinderGeometry(FENCE_R+18,FENCE_R+16,1.2,72,1,true,(180-58)*D2R,116*D2R),
+    new THREE.MeshStandardMaterial({color:0x161c26,roughness:.9,side:THREE.DoubleSide}));
+  roof.position.y=FENCE_H+13.8;root.add(roof);
+  // ファウルポール
+  for(const th of [TH0,TH0+THL]){
+    const p=new THREE.Mesh(new THREE.CylinderGeometry(.22,.22,13,10),
+      new THREE.MeshStandardMaterial({color:0xf5d13a,emissive:0x3a2c00,roughness:.5}));
+    p.position.set(Math.sin(th)*FENCE_R,6.5,Math.cos(th)*FENCE_R);root.add(p);
+  }
+  // 照明塔
+  for(const d of [-52,-24,24,52]){
+    const th=Math.PI+d*D2R;
+    const x=Math.sin(th)*(FENCE_R+22),z=Math.cos(th)*(FENCE_R+22);
+    const pole=new THREE.Mesh(new THREE.CylinderGeometry(.4,.55,30,8),
+      new THREE.MeshStandardMaterial({color:0x2a323c,roughness:.7,metalness:.5}));
+    pole.position.set(x,15,z);root.add(pole);
+    const bank=new THREE.Mesh(new THREE.BoxGeometry(9,4,.6),
+      new THREE.MeshBasicMaterial({color:0xfff8e0}));
+    bank.position.set(x,31,z);bank.lookAt(0,6,0);root.add(bank);
+  }
 })();
-const hrPanel=new THREE.Mesh(new THREE.PlaneGeometry(13,6.2),
-  new THREE.MeshBasicMaterial({map:hrPanelTex}));
-hrPanel.position.set(0,5.2,FENCE_Z+.3);root.add(hrPanel);
-for(const sx of [-26,26]){
-  const pole=new THREE.Mesh(new THREE.CylinderGeometry(.32,.42,20,8),
-    new THREE.MeshStandardMaterial({color:0x2a323c,roughness:.7,metalness:.5}));
-  pole.position.set(sx,10,FENCE_Z-3);root.add(pole);
-  const lamp=new THREE.Mesh(new THREE.BoxGeometry(6,2.6,.5),
-    new THREE.MeshBasicMaterial({color:0xfff6d8}));
-  lamp.position.set(sx,20.5,FENCE_Z-3);root.add(lamp);
+
+/* ── 得点板 ── */
+const boardCv=document.createElement('canvas');boardCv.width=512;boardCv.height=224;
+const boardTex=texFrom(boardCv);
+function drawBoard(){
+  const g=boardCv.getContext('2d');
+  g.fillStyle='#070c10';g.fillRect(0,0,512,224);
+  g.strokeStyle='#2d3b46';g.lineWidth=6;g.strokeRect(6,6,500,212);
+  g.fillStyle='#ffd23a';g.font='900 34px sans-serif';g.textAlign='left';g.textBaseline='middle';
+  g.fillText('ホームラン競走',22,36);
+  g.fillStyle='#8fe044';g.font='900 22px sans-serif';
+  g.fillText('SCORE',22,86);g.fillText('本塁打',22,132);g.fillText('のこり',22,178);
+  g.fillStyle='#f4f8ff';g.font='900 40px sans-serif';g.textAlign='right';
+  g.fillText(String(score),490,86);
+  g.fillText(hrs+' 本',490,132);
+  g.fillText(pitchLeft+' 球',490,178);
+  if(farthest>0){
+    g.fillStyle='#6fd0ff';g.font='900 24px sans-serif';g.textAlign='center';
+    g.fillText('最長 '+farthest+'m',256,36);
+  }
+  boardTex.needsUpdate=true;
 }
-/* ピッチングマシン */
-const machine=new THREE.Group();
 (function(){
-  const b=new THREE.Mesh(new THREE.BoxGeometry(1.5,1.5,1.2),
-    new THREE.MeshStandardMaterial({color:0x30465c,roughness:.5,metalness:.4}));
-  b.position.y=1.1;b.castShadow=true;machine.add(b);
-  const leg=new THREE.Mesh(new THREE.CylinderGeometry(.12,.16,1.1,8),
-    new THREE.MeshStandardMaterial({color:0x22303c}));
-  leg.position.y=.55;machine.add(leg);
-  for(const s of [-1,1]){
-    const w=new THREE.Mesh(new THREE.CylinderGeometry(.62,.62,.22,20),
-      new THREE.MeshStandardMaterial({color:0x141a20,roughness:.6,metalness:.3}));
-    w.rotation.z=Math.PI/2;w.position.set(s*.5,1.1,.75);machine.add(w);
+  const b=new THREE.Mesh(new THREE.BoxGeometry(26,11.4,1.2),
+    [0,1,2,3,4,5].map(function(i){return i===4?new THREE.MeshBasicMaterial({map:boardTex})
+      :new THREE.MeshStandardMaterial({color:0x11171d,roughness:.8});}));
+  b.position.set(0,15,-(FENCE_R+16));root.add(b);
+  for(const sx of [-1,1]){
+    const leg=new THREE.Mesh(new THREE.BoxGeometry(1,10,1),
+      new THREE.MeshStandardMaterial({color:0x11171d,roughness:.9}));
+    leg.position.set(sx*10,5,-(FENCE_R+16));root.add(leg);
   }
 })();
-const mlamp=new THREE.Mesh(new THREE.SphereGeometry(.14,10,8),
-  new THREE.MeshBasicMaterial({color:0x33404c}));
-mlamp.position.set(0,1.85,.4);machine.add(mlamp);
-machine.position.set(0,0,MACHINE_Z);root.add(machine);
-/* バッター */
-const batter=new THREE.Group();
-const swing=new THREE.Group();
-let bat=null;
+
+/* ── 的（フェンス上の看板） ── */
+function targetTex(n,col,label){
+  const c=document.createElement('canvas');c.width=256;c.height=128;
+  const g=c.getContext('2d');
+  g.fillStyle='#0d1a14';g.fillRect(0,0,256,128);
+  g.strokeStyle=col;g.lineWidth=9;g.strokeRect(9,9,238,110);
+  g.fillStyle=col;g.font='900 62px sans-serif';g.textAlign='center';g.textBaseline='middle';
+  g.fillText(n,128,54);
+  g.font='900 24px sans-serif';g.fillStyle='#ffffff';
+  g.fillText(label,128,100);
+  return texFrom(c);
+}
+const targets=[];
+[[-27,300,'#8fe044','てき中'],[-11,600,'#ffe27a','ど真ん中'],[11,600,'#ffe27a','ど真ん中'],[27,300,'#8fe044','てき中']]
+.forEach(function(d){
+  const phi=d[0]*D2R;
+  const m=new THREE.Mesh(new THREE.PlaneGeometry(7.6,3.1),
+    new THREE.MeshBasicMaterial({map:targetTex(d[1],d[2],d[3])}));
+  m.position.set(Math.sin(Math.PI+phi)*(FENCE_R-.2),2.0,Math.cos(Math.PI+phi)*(FENCE_R-.2));
+  m.rotation.y=-phi;
+  root.add(m);
+  targets.push({mesh:m,phi:phi,pts:d[1],alive:true,back:0,col:d[2]});
+});
+const hrPanel=new THREE.Mesh(new THREE.PlaneGeometry(13,5.4),
+  new THREE.MeshBasicMaterial({map:(function(){
+    const c=document.createElement('canvas');c.width=512;c.height=224;
+    const g=c.getContext('2d');
+    g.fillStyle='#0b1118';g.fillRect(0,0,512,224);
+    g.strokeStyle='#ffd23a';g.lineWidth=10;g.strokeRect(12,12,488,200);
+    g.fillStyle='#ffd23a';g.font='900 82px sans-serif';g.textAlign='center';g.textBaseline='middle';
+    g.fillText('ホームラン',256,96);
+    g.fillStyle='#8fe044';g.font='900 34px sans-serif';
+    g.fillText('HOME RUN',256,168);
+    return texFrom(c);})()}));
+hrPanel.position.set(0,FENCE_H+3.6,-(FENCE_R-.4));root.add(hrPanel);
+
+/* ── 人 ── */
+const skinMat=new THREE.MeshStandardMaterial({color:0xf0c39a,roughness:.75});
+function person(uniform,pants,cap){
+  const g=new THREE.Group();
+  const cm=new THREE.MeshStandardMaterial({color:uniform,roughness:.85});
+  const pm=new THREE.MeshStandardMaterial({color:pants,roughness:.85});
+  const hm=new THREE.MeshPhysicalMaterial({color:cap,roughness:.35,clearcoat:.6});
+  const body=new THREE.Mesh(new THREE.CylinderGeometry(.31,.4,1.05,14),cm);
+  body.position.y=1.18;body.castShadow=true;g.add(body);
+  const hip=new THREE.Mesh(new THREE.CylinderGeometry(.4,.22,.95,14),pm);
+  hip.position.y=.52;hip.castShadow=true;g.add(hip);
+  for(const sx of [-1,1]){
+    const leg=new THREE.Mesh(new THREE.CylinderGeometry(.14,.11,.55,8),pm);
+    leg.position.set(sx*.17,.24,0);g.add(leg);
+    const shoe=new THREE.Mesh(new THREE.BoxGeometry(.2,.1,.4),
+      new THREE.MeshStandardMaterial({color:0x1a1d22,roughness:.6}));
+    shoe.position.set(sx*.17,.05,.06);g.add(shoe);
+  }
+  const head=new THREE.Mesh(new THREE.SphereGeometry(.26,18,14),skinMat);
+  head.position.y=1.93;head.castShadow=true;g.add(head);
+  const helm=new THREE.Mesh(new THREE.SphereGeometry(.29,18,14,0,6.283,0,1.5),hm);
+  helm.position.y=1.95;g.add(helm);
+  const brim=new THREE.Mesh(new THREE.BoxGeometry(.34,.05,.32),hm);
+  brim.position.set(0,1.92,-.28);g.add(brim);
+  g.userData.cm=cm;
+  return g;
+}
+/* 打者 */
+const batter=person(0xf3f4ef,0x1e2a4a,0x1e2a4a);
+const swing=new THREE.Group();swing.position.set(0,1.35,.05);batter.add(swing);
 (function(){
-  const skin=new THREE.MeshStandardMaterial({color:0xf0c39a,roughness:.75});
-  const cloth=new THREE.MeshStandardMaterial({color:0xf3f4ef,roughness:.85});
-  const dark=new THREE.MeshStandardMaterial({color:0x24304a,roughness:.8});
-  const body=new THREE.Mesh(new THREE.CylinderGeometry(.32,.4,1.05,14),cloth);
-  body.position.y=1.18;body.castShadow=true;batter.add(body);
-  const hip=new THREE.Mesh(new THREE.CylinderGeometry(.4,.3,.85,14),dark);
-  hip.position.y=.5;hip.castShadow=true;batter.add(hip);
-  const head=new THREE.Mesh(new THREE.SphereGeometry(.27,18,14),skin);
-  head.position.y=1.95;head.castShadow=true;batter.add(head);
-  const helm=new THREE.Mesh(new THREE.SphereGeometry(.3,18,14,0,6.283,0,1.5),
-    new THREE.MeshPhysicalMaterial({color:0x1e2a4a,roughness:.25,clearcoat:1}));
-  helm.position.y=1.97;batter.add(helm);
-  const brim=new THREE.Mesh(new THREE.BoxGeometry(.34,.05,.3),
-    new THREE.MeshStandardMaterial({color:0x1e2a4a,roughness:.35}));
-  brim.position.set(0,1.94,-.28);batter.add(brim);
-  swing.position.set(0,1.35,.05);batter.add(swing);
-  const arm=new THREE.Mesh(new THREE.CylinderGeometry(.1,.11,.62,10),skin);
+  const arm=new THREE.Mesh(new THREE.CylinderGeometry(.1,.11,.62,10),skinMat);
   arm.rotation.z=Math.PI/2;arm.position.set(-.3,0,0);swing.add(arm);
-  bat=new THREE.Group();
+  const bat=new THREE.Group();
   const grip=new THREE.Mesh(new THREE.CylinderGeometry(.045,.05,.28,10),
     new THREE.MeshStandardMaterial({color:0x2a2a2e,roughness:.9}));
   grip.position.y=.14;bat.add(grip);
   const barrel=new THREE.Mesh(new THREE.CylinderGeometry(.075,.05,.72,14),
     new THREE.MeshPhysicalMaterial({color:0xc98b46,roughness:.28,clearcoat:.8}));
   barrel.position.y=.64;barrel.castShadow=true;bat.add(barrel);
-  bat.position.set(-.62,0,0);bat.rotation.z=.35;
-  swing.add(bat);
-  batter.position.set(.95,0,PLATE_Z+.1);
-  batter.rotation.y=Math.PI*.06;
-  root.add(batter);
+  bat.position.set(-.62,0,0);bat.rotation.z=.35;swing.add(bat);
 })();
-/* ボール */
+batter.position.set(.95,0,PLATE_Z+.1);batter.rotation.y=Math.PI*.06;root.add(batter);
+/* 捕手と審判 */
+(function(){
+  const c=person(0xd8dde6,0x2a3038,0x20262e);
+  c.position.set(-.55,-.42,PLATE_Z+1.7);c.rotation.y=Math.PI;c.scale.setScalar(.92);root.add(c);
+  const u=person(0x232830,0x1a1f26,0x14181e);
+  u.position.set(-.75,-.3,PLATE_Z+2.6);u.rotation.y=Math.PI;u.scale.setScalar(.95);root.add(u);
+})();
+/* 投手 */
+const pitcher=person(0xf3f4ef,0x8a2230,0x8a2230);
+const parm=new THREE.Group();parm.position.set(-.26,1.55,0);
+(function(){
+  const a=new THREE.Mesh(new THREE.CylinderGeometry(.1,.1,.66,10),skinMat);
+  a.position.y=-.3;parm.add(a);
+  const glove=new THREE.Mesh(new THREE.SphereGeometry(.16,12,10),
+    new THREE.MeshStandardMaterial({color:0x6b3f22,roughness:.8}));
+  glove.position.y=-.62;parm.add(glove);
+})();
+pitcher.add(parm);
+const parm2=new THREE.Group();parm2.position.set(.26,1.55,0);
+(function(){
+  const a=new THREE.Mesh(new THREE.CylinderGeometry(.1,.1,.66,10),skinMat);
+  a.position.y=-.3;parm2.add(a);
+})();
+pitcher.add(parm2);
+pitcher.position.set(0,.24,MOUND_Z);root.add(pitcher);
+
+/* ── ボール ── */
 const ballTex=(function(){
   const S=128,c=cvs(S),g=c.getContext('2d');
   g.fillStyle='#fbfbf6';g.fillRect(0,0,S,S);
@@ -1105,191 +1265,262 @@ const ballTex=(function(){
       g.beginPath();g.moveTo(x-3,y+5);g.lineTo(x+3,y+1);g.stroke();
     }
   }
-  noiseOver(g,S,180,.05);
   return texFrom(c);
 })();
-const ball=new THREE.Mesh(new THREE.SphereGeometry(.115,20,14),
-  new THREE.MeshStandardMaterial({map:ballTex,roughness:.55}));
+const ball=new THREE.Mesh(new THREE.SphereGeometry(.118,20,14),
+  new THREE.MeshStandardMaterial({map:ballTex,roughness:.45}));
 ball.castShadow=true;ball.visible=false;root.add(ball);
+
 const bshadow=new THREE.Mesh(new THREE.CircleGeometry(.3,20),
   new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:.32}));
 bshadow.rotation.x=-Math.PI/2;bshadow.visible=false;root.add(bshadow);
 const trailPts=[];
 const trailGeo=new THREE.BufferGeometry();
-trailGeo.setAttribute('position',new THREE.BufferAttribute(new Float32Array(120*3),3));
+trailGeo.setAttribute('position',new THREE.BufferAttribute(new Float32Array(160*3),3));
 const trailLine=new THREE.Line(trailGeo,new THREE.LineBasicMaterial({color:0xffe9a8,transparent:true,opacity:.75}));
 trailLine.visible=false;root.add(trailLine);
 
-const PITCHES=20;
+/* ── 進行 ── */
+const PITCHES=14;
 let bvel=new THREE.Vector3(),phase='wait',pt2=0,pitchLeft=PITCHES;
-let swingT=-1,contactAt=-1,tapY=.5,hits=0,hrs=0,farthest=0,dist=0,camMode='bat';
-let resultT=0,swungAt=-1;
+let swingT=-1,contactAt=.075,hits=0,hrs=0,farthest=0,dist=0,camMode='bat';
+let resultT=0,swungAt=-1,pitchVz=15,pitcherDown=false,streak=0,hrStreak=0,bestStreak=0;
 
-function resetBall(){
-  trailPts.length=0;trailLine.visible=false;
-  bshadow.visible=false;ball.visible=false;
-}
+function resetBall(){trailPts.length=0;trailLine.visible=false;bshadow.visible=false;ball.visible=false;}
 function nextPitch(){
-  if(pitchLeft<=0){
-    gameOver('しあいしゅうりょう');return;
-  }
+  pitcherDown=false;
+  if(pitchLeft<=0){gameOver('しあいしゅうりょう');return;}
   resetBall();
-  phase='ready';pt2=elapsed+.8;camMode='bat';
-  setStep('のこり '+pitchLeft+'球');
+  phase='ready';pt2=elapsed+1.5;camMode='bat';
+  setStep('のこり '+pitchLeft+'球');drawBoard();
 }
 function throwBall(){
   const diff=1-pitchLeft/PITCHES;
-  const sp=21+Math.random()*4+diff*7;
-  const from=new THREE.Vector3((Math.random()-.5)*.5,1.55,MACHINE_Z+.9);
-  const to=new THREE.Vector3(.28+(Math.random()-.5)*.7,.95+Math.random()*.55,PLATE_Z);
+  const sp=13+Math.random()*2+diff*3.4;
+  const from=new THREE.Vector3(.1,1.95,MOUND_Z+1.15);
+  const to=new THREE.Vector3(-.02+(Math.random()-.5)*.34,1.0+Math.random()*.45,PLATE_Z);
   const d=from.distanceTo(to),T=d/sp;
   bvel.copy(to).sub(from).divideScalar(T);
-  bvel.y+=.5*GG*T;
+  bvel.y+=.5*PITCH_G*T;
   ball.position.copy(from);ball.visible=true;
+  pitchVz=Math.abs(bvel.z);
   phase='pitch';swungAt=-1;
-  noise(.12,'bandpass',900,300,.16,1);
+  noise(.1,'bandpass',1100,400,.14,1);
 }
-function doSwing(y){
+function doSwing(){
   if(swingT>=0)return;
-  tapY=y;swingT=0;contactAt=.075;swungAt=-1;
-  noise(.14,'bandpass',1800,500,.13,1.2);
+  swingT=0;swungAt=-1;
+  noise(.12,'bandpass',1700,500,.11,1.2);
 }
 function contact(){
-  if(phase!=='pitch'){snd.miss();return;}
+  if(phase!=='pitch')return;
   const dz=ball.position.z-PLATE_Z;
-  const win=1.9;
-  if(Math.abs(dz)>win||ball.position.z>2.2){return;}
-  const q=Math.max(0,1-Math.abs(dz)/win);
-  const k=Math.pow(q,.75);
-  const ang=THREE.MathUtils.degToRad(9+(1-tapY)*33);
-  const spray=THREE.MathUtils.degToRad(THREE.MathUtils.clamp(dz*20,-34,34));
-  const sp=13.5+17*k;
+  if(Math.abs(dz)>WIN||ball.position.z>2.8){
+    streak=0;
+    if(ball.position.z<PLATE_Z)popup(new THREE.Vector3(.6,1.6,PLATE_Z),'はやい','#9fc0ff',22);
+    else popup(new THREE.Vector3(.6,1.6,PLATE_Z),'おそい','#ffb27a',22);
+    return;
+  }
+  const q=Math.max(0,1-Math.abs(dz)/WIN);
+  const k=Math.pow(q,.7);
+  const ang=THREE.MathUtils.degToRad(29+k*5+(Math.random()-.5)*2.5);
+  const spray=THREE.MathUtils.degToRad(THREE.MathUtils.clamp(dz*17,-32,32));
+  const sp=25.5+21*k;
   bvel.set(Math.sin(spray)*Math.cos(ang),Math.sin(ang),-Math.cos(spray)*Math.cos(ang)).multiplyScalar(sp);
-  phase='fly';camMode='fly';
-  hits++;
+  phase='fly';camMode='fly';hits++;
   trailPts.length=0;trailLine.visible=true;
-  burst(ball.position,0xffffff,18,4);
-  shakeAdd(.4+k*.5);
-  const label=k>.8?'ジャストミート！':(k>.55?'ナイスバッティング':'当たった！');
-  snd.chop();tone(300+k*500,120,.2,.22,'triangle');
-  if(k>.8){snd.good(2);slowmo(.3,.55);whiteFlash(.18);}
-  else slowmo(.45,.3);
-  banner(label,k>.8?'#ffe27a':'#eaffd0');
+  burst(ball.position,0xffffff,20,4.4);
+  shakeAdd(.45+k*.55);
+  const label=k>.72?'ジャストミート！':(k>.45?'ナイスバッティング':'当たった！');
+  snd.chop();tone(320+k*520,120,.2,.24,'triangle');
+  slowmo(.22,.1);
+  if(k>.72){snd.good(2);whiteFlash(.2);}
+  banner(label,k>.72?'#ffe27a':'#eaffd0');
 }
 function endBall(text,color,pts){
   if(phase==='done')return;
-  phase='done';resultT=elapsed+.95;
+  phase='done';resultT=elapsed+1.5;
   if(pts)addScore(pts);
-  banner(text,color);
+  banner(text,color);drawBoard();
 }
 function clear(){
   resetBall();phase='wait';pitchLeft=PITCHES;swingT=-1;
   hits=0;hrs=0;farthest=0;dist=0;camMode='bat';
-  swing.rotation.set(0,0,0);
+  pitcherDown=false;pitcher.rotation.set(0,0,0);pitcher.position.set(0,.24,MOUND_Z);
+  streak=0;hrStreak=0;bestStreak=0;
+  parm.rotation.set(0,0,0);parm2.rotation.set(0,0,0);
+  targets.forEach(function(t){t.alive=true;t.mesh.visible=true;t.mesh.scale.set(1,1,1);});
+  swing.rotation.set(0,0,0);batter.rotation.y=Math.PI*.06;
 }
 
 MODES.homerun={
   id:'homerun',label:'スッキリ！ホームラン',root:root,
   theme:{id:'homerun',back:0x0d1a22,glow:0x1f4d5e,fog:0x08131a,under:0x6fd0ff,rim:0xa8e6ff},
   uses:{lives:false},swish:false,
-  howto:'<p>マシンから飛んでくる球を<b>タップして打つ</b>。タイミングがすべて。</p><p>タップする位置の高さで打ち上げる角度が変わる。<b>画面の上をタップ＝大きな当たり</b>、下＝ライナー。</p><p>フェンス越えでホームラン、看板直撃で特大ボーナス。20球勝負。</p>',
+  howto:'<p>投手が投げた球を<b>タップして打つ</b>。振り始めてから当たるまで少し間があるので、球がベースに来る少し前がねらい目。</p><p>芯で捉えるほど打球が速く、遠くまで飛ぶ。打ち上げ角は自動なので<b>タイミングだけ</b>に集中。</p><p>フェンス越えでホームラン。看板・的・投手への直撃で大加点。14球勝負。</p>',
   enter(){
     clear();
-    scene.fog.near=45;scene.fog.far=190;
+    scene.fog.near=70;scene.fog.far=260;
     back.visible=false;glow.visible=false;dust.visible=false;
-    nextPitch();
-    hint('タップで振る／上をタップで高く');
+    nextPitch();drawBoard();
+    hint('球がベースに来る少し前にタップ',3.4);
   },
   exit(){clear();back.visible=true;glow.visible=true;dust.visible=true;},
-  onDown(p){
+  onDown(){
     if(state!=='play')return;
-    doSwing(THREE.MathUtils.clamp(p.y/window.innerHeight,0,1));
+    doSwing();
   },
   update(dt,raw){
-    /* スイング */
-    if(swingT>=0){
-      swingT+=raw;
-      const k=Math.min(1,swingT/.3);
-      swing.rotation.y=-1.9+3.6*(1-Math.pow(1-k,2.2));
-      batter.rotation.y=Math.PI*.06+.5*(1-Math.pow(1-k,2.2));
-      if(swungAt<0&&swingT>=contactAt){swungAt=elapsed;contact();}
-      if(k>=1){swingT=-1;swing.rotation.y=0;batter.rotation.y=Math.PI*.06;}
-    }
-    /* 投球 */
+    /* 投球モーション */
     if(phase==='ready'){
-      const left=pt2-elapsed;
-      mlamp.material.color.setHex(left<.28?0xff3b2e:(Math.floor(left*4)%2?0xffd23a:0x33404c));
-      mlamp.scale.setScalar(left<.28?1.5:1);
+      const u=THREE.MathUtils.clamp(1-(pt2-elapsed)/1.5,0,1);
+      const wind=u<.62?u/.62:1;
+      parm.rotation.x=-2.9*Math.sin(wind*Math.PI*.5);
+      parm2.rotation.x=1.1*Math.sin(wind*Math.PI*.5);
+      pitcher.rotation.y=.35*Math.sin(wind*Math.PI*.5);
+      if(u>.62){
+        const r=(u-.62)/.38;
+        parm.rotation.x=-2.9+3.4*Math.pow(r,1.7);
+        parm2.rotation.x=1.1-1.1*r;
+        pitcher.rotation.y=.35*(1-r);
+      }
       if(elapsed>pt2)throwBall();
-    }else{mlamp.material.color.setHex(0x33404c);mlamp.scale.setScalar(1);}
+    }else if(!pitcherDown&&phase!=='fly'){
+      parm.rotation.x+=(0-parm.rotation.x)*(1-Math.exp(-5*raw));
+      parm2.rotation.x+=(0-parm2.rotation.x)*(1-Math.exp(-5*raw));
+    }
+    /* ボール */
     if(phase==='pitch'||phase==='fly'){
-      bvel.y-=GG*dt;
-      if(phase==='fly')bvel.multiplyScalar(1-.028*dt*60/60);
+      bvel.y-=(phase==='fly'?HIT_G:PITCH_G)*dt;
       ball.position.addScaledVector(bvel,dt);
       ball.rotation.x+=dt*14;ball.rotation.y+=dt*9;
       bshadow.visible=true;
-      bshadow.position.set(ball.position.x,.03,ball.position.z);
+      bshadow.position.set(ball.position.x,.08,ball.position.z);
       const hgt=Math.max(0,ball.position.y);
       bshadow.scale.setScalar(1+hgt*.14);
       bshadow.material.opacity=Math.max(.05,.34-hgt*.016);
       if(phase==='fly'){
         trailPts.push(ball.position.clone());
-        if(trailPts.length>120)trailPts.shift();
+        if(trailPts.length>160)trailPts.shift();
         const arr=trailGeo.attributes.position.array;
         for(let i=0;i<trailPts.length;i++){arr[i*3]=trailPts[i].x;arr[i*3+1]=trailPts[i].y;arr[i*3+2]=trailPts[i].z;}
         trailGeo.setDrawRange(0,trailPts.length);
         trailGeo.attributes.position.needsUpdate=true;
-        if(Math.random()<dt*30)burst(ball.position,0xfff0c0,1,.6);
+        if(Math.random()<dt*26)burst(ball.position,0xfff0c0,1,.6);
       }
-      /* 判定 */
-      if(phase==='pitch'&&ball.position.z>3.2){
-        pitchLeft--;
+      if(phase==='pitch'&&ball.position.z>3.6){
+        pitchLeft--;streak=0;hrStreak=0;
         endBall(swungAt>0?'空ぶり…':'見のがし','#ff9d7a',0);
         snd.miss();shakeAdd(.2);
       }
       if(phase==='fly'){
-        const overFence=ball.position.z<FENCE_Z;
-        if(overFence&&ball.position.y>FENCE_H){
-          pitchLeft--;hrs++;
-          dist=Math.round(Math.hypot(ball.position.x,ball.position.z)+3);
-          farthest=Math.max(farthest,dist);
-          const panel=Math.abs(ball.position.x)<6.5&&ball.position.y<8.4;
-          const pts=dist*2+(panel?300:150);
-          burst(ball.position,0xffe27a,50,6);
-          whiteFlash(.3);shakeAdd(1.1);snd.gold();snd.combo(4);
-          endBall(panel?'看板直撃！！ +'+pts:'ホームラン！ +'+pts,'#ffe27a',pts);
-          popup(ball.position,dist+'m','#ffe27a',34);
-        }else if(ball.position.y<=.12){
-          pitchLeft--;
-          dist=Math.round(Math.hypot(ball.position.x,ball.position.z));
-          farthest=Math.max(farthest,dist);
-          const pts=Math.round(dist*1.6);
-          burst(ball.position,0x9a7a4a,20,2.6);
-          snd.plop();
-          endBall(dist+'m　+'+pts,'#eaffd0',pts);
-          popup(ball.position,dist+'m','#ffffff',26);
-        }else if(ball.position.z<FENCE_Z-4||Math.abs(ball.position.x)>44){
-          pitchLeft--;
+        const bx=ball.position.x,by=ball.position.y,bz=ball.position.z;
+        const R=Math.hypot(bx,bz);
+        const phi=Math.atan2(bx,-bz);
+        /* 投手直撃 */
+        if(!pitcherDown&&Math.abs(bz-MOUND_Z)<1.3&&Math.abs(bx)<1.2&&by<2.4){
+          pitcherDown=true;addScore(250);
+          burst(new THREE.Vector3(0,1.4,MOUND_Z),0xffd9cf,40,6);
+          snd.bomb();shakeAdd(1.2);
+          banner('ピッチャー直撃！ +250','#6fd0ff');
+          popup(new THREE.Vector3(0,3,MOUND_Z),'ざまあ！','#6fd0ff',30);
+        }
+        if(Math.abs(phi)>46*D2R&&R>12){
+          pitchLeft--;streak=0;
           endBall('ファウル','#ff9d7a',0);
+        }else if(R>FENCE_R&&by>FENCE_H){
+          pitchLeft--;hrs++;streak++;hrStreak++;bestStreak=Math.max(bestStreak,streak);
+          (function(){
+            const vy=bvel.y,tf=(vy+Math.sqrt(Math.max(0,vy*vy+2*HIT_G*by)))/HIT_G;
+            const lx=bx+bvel.x*tf,lz=bz+bvel.z*tf;
+            dist=Math.round(Math.hypot(lx,lz));
+          })();
+          farthest=Math.max(farthest,dist);
+          let pts=dist*2+150,msg='ホームラン！';
+          if(Math.abs(phi)<7.2*D2R&&by>FENCE_H+1&&by<FENCE_H+7){pts+=350;msg='看板直撃！！';}
+          if(hrStreak>1){pts+=hrStreak*60;msg=hrStreak+'打席連続！ '+msg;}
+          burst(ball.position,0xffe27a,50,6);
+          whiteFlash(.34);shakeAdd(1.3);snd.gold();snd.combo(4);snd.cheer();
+          for(let f=0;f<3;f++)setTimeout(function(){
+            burst(new THREE.Vector3((Math.random()-.5)*54,15+Math.random()*8,-(FENCE_R+6)),
+              [0xffe27a,0x8fe044,0x6fd0ff][f%3],46,10,null,1.4);
+            noise(.5,'bandpass',2400,600,.14,1.2);
+          },260*f+140);
+          endBall(msg+' +'+pts,'#ffe27a',pts);
+          popup(ball.position,dist+'m','#ffe27a',36);
+        }else if(R>FENCE_R-.3&&by<=FENCE_H+.1){
+          /* フェンス直撃（的あり） */
+          pitchLeft--;streak++;hrStreak=0;bestStreak=Math.max(bestStreak,streak);
+          dist=Math.round(FENCE_R);farthest=Math.max(farthest,dist);
+          let pts=90,msg='フェンス直撃！';
+          for(const tg of targets){
+            if(tg.alive&&Math.abs(phi-tg.phi)<.075&&by>.4&&by<3.6){
+              tg.alive=false;tg.mesh.visible=false;tg.back=elapsed+5;
+              pts+=tg.pts;msg='まと直撃！！';
+              burst(tg.mesh.position.clone(),new THREE.Color(tg.col).getHex(),56,7,null,1.3);
+              shakeAdd(1.0);snd.bomb();whiteFlash(.2);
+            }
+          }
+          burst(ball.position,0xcfe0d0,26,3.4);
+          snd.chop();
+          endBall(msg+' +'+pts,msg==='まと直撃！！'?'#ffe27a':'#eaffd0',pts);
+          popup(ball.position,dist+'m','#ffffff',26);
+        }else if(by<=.12){
+          pitchLeft--;streak++;hrStreak=0;bestStreak=Math.max(bestStreak,streak);
+          dist=Math.round(R);farthest=Math.max(farthest,dist);
+          let pts=Math.round(dist*1.8);
+          if(streak>=3)pts+=streak*15;
+          const wall=R>FENCE_R-3.5;
+          burst(ball.position,wall?0x8fbf6a:0xb08a5a,22,2.8);
+          snd.plop();
+          endBall(dist+'m'+(wall?'　おしい！':'')+(streak>=3?'　'+streak+'連続':'')+'　+'+pts,'#eaffd0',pts);
+          popup(ball.position,dist+'m','#ffffff',26);
+        }else if(R>FENCE_R+26){
+          pitchLeft--;
+          endBall('場外！','#ffe27a',400);
         }
       }
+    }
+    /* スイング判定（ボール移動後） */
+    if(swingT>=0){
+      swingT+=raw;
+      const sk=Math.min(1,swingT/.3);
+      swing.rotation.y=-1.9+3.6*(1-Math.pow(1-sk,2.2));
+      batter.rotation.y=Math.PI*.06+.5*(1-Math.pow(1-sk,2.2));
+      if(swungAt<0&&swingT>=contactAt){swungAt=elapsed;contact();}
+      if(sk>=1){swingT=-1;swing.rotation.y=0;batter.rotation.y=Math.PI*.06;}
+    }
+    /* 投手ダウン */
+    if(pitcherDown){
+      pitcher.rotation.x+=(-1.4-pitcher.rotation.x)*(1-Math.exp(-8*raw));
+      pitcher.position.z+=(MOUND_Z-1.6-pitcher.position.z)*(1-Math.exp(-8*raw));
+    }else if(pitcher.rotation.x!==0){
+      pitcher.rotation.x*=Math.exp(-4*raw);
+      pitcher.position.z=MOUND_Z+(pitcher.position.z-MOUND_Z)*Math.exp(-4*raw);
+      if(Math.abs(pitcher.rotation.x)<.01){pitcher.rotation.x=0;pitcher.position.z=MOUND_Z;}
+    }
+    /* 的の復活 */
+    for(const tg of targets){
+      if(!tg.alive&&elapsed>tg.back){tg.alive=true;tg.mesh.visible=true;tg.mesh.scale.set(.2,.2,1);}
+      if(tg.alive&&tg.mesh.scale.x<1)tg.mesh.scale.x=tg.mesh.scale.y=Math.min(1,tg.mesh.scale.x+raw*4.5);
     }
     if(phase==='done'&&elapsed>resultT){camMode='bat';nextPitch();}
     /* カメラ */
     const t=elapsed;
     if(camMode==='fly'){
       const v=bvel.clone().normalize();
-      camWant.copy(ball.position).addScaledVector(v,-9).add(new THREE.Vector3(0,3.4,0));
-      camWant.y=Math.max(1.6,camWant.y);
+      camWant.copy(ball.position).addScaledVector(v,-12.5).add(new THREE.Vector3(0,4.6,0));
+      camWant.y=Math.max(2.2,camWant.y);
       lookWant.copy(ball.position);
-      fovWant=52;camLag=3.4;
+      fovWant=56;camLag=4.6;
     }else{
-      camWant.set(3.1+Math.sin(t*.24)*.28,2.55+Math.sin(t*.31)*.14,4.6+Math.sin(t*.19)*.3);
-      lookWant.set(.2,1.5,phase==='pitch'?-6:-11);
-      fovWant=phase==='pitch'?40:44;camLag=2.4;
+      const close=(phase==='pitch')?1:0;
+      camWant.set(.1+Math.sin(t*.23)*.09,3.5+Math.sin(t*.31)*.06,7.2-close*.3+Math.sin(t*.18)*.12);
+      lookWant.set(0,1.55-close*.08,-14+close*1.4);
+      fovWant=46;camLag=2.6;
     }
   },
-  overStats(){return 'ホームラン '+hrs+'本　ヒット '+hits+'　最長 '+farthest+'m';}
+  overStats(){return 'ホームラン '+hrs+'本　ヒット '+hits+'　最長 '+farthest+'m　最高 '+bestStreak+'連続';}
 };
 })();
 
@@ -1298,8 +1529,23 @@ MODES.homerun={
    ══════════════════════════════════════════ */
 (function(){
 const root=new THREE.Group();root.visible=false;scene.add(root);
-const ROAD_W=9.6, LANES=[-7.4,-4.5,-1.5,1.5,4.5,7.4];
+const ROAD_W=7.9, LANES=[-3.75,-1.25,1.25,3.75];
+const CLOSED=[-6.25,6.25];
+const poles=[];
 const FAR=-150, BEHIND=15;
+
+/* 夜空 */
+(function(){
+  const c=document.createElement('canvas');c.width=8;c.height=256;
+  const g=c.getContext('2d');
+  const gr=g.createLinearGradient(0,0,0,256);
+  gr.addColorStop(0,'#04060e');gr.addColorStop(.5,'#0a1024');gr.addColorStop(.82,'#1a2140');
+  gr.addColorStop(1,'#2a2350');
+  g.fillStyle=gr;g.fillRect(0,0,8,256);
+  const sky=new THREE.Mesh(new THREE.SphereGeometry(300,24,16),
+    new THREE.MeshBasicMaterial({map:texFrom(c),side:THREE.BackSide,fog:false}));
+  root.add(sky);
+})();
 
 /* 路面 */
 const roadTex=(function(){
@@ -1308,10 +1554,12 @@ const roadTex=(function(){
   g.fillStyle='#22252b';g.fillRect(0,0,W,H);
   for(let i=0;i<2200;i++){g.fillStyle='rgba(255,255,255,'+(Math.random()*.045)+')';
     g.fillRect(Math.random()*W,Math.random()*H,2,2);}
-  g.fillStyle='#e8e8e0';
-  g.fillRect(4,0,5,H);g.fillRect(W-9,0,5,H);
-  g.fillStyle='rgba(240,240,225,.9)';
-  for(let y=0;y<H;y+=64){g.fillRect(W*.335,y,4,34);g.fillRect(W*.655,y,4,34);}
+  g.fillStyle='#eceae0';
+  g.fillRect(W*.088-3,0,6,H);g.fillRect(W*.912-3,0,6,H);
+  g.fillStyle='rgba(240,240,225,.85)';
+  [.225,.363,.5,.637,.775].forEach(function(u){
+    for(let y=0;y<H;y+=58)g.fillRect(W*u-2,y,4,30);
+  });
   const t=texFrom(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(1,26);
   t.anisotropy=4;return t;
 })();
@@ -1329,6 +1577,29 @@ for(const s of [-1,1]){
     new THREE.MeshStandardMaterial({color:0x2c3138,roughness:.9}));
   kerb.position.set(s*(ROAD_W+1.5),.15,-170);root.add(kerb);
 }
+/* 使わない外側2車線は封鎖レーンとして塗る */
+(function(){
+  const S=64,c=cvs(S),g=c.getContext('2d');
+  g.fillStyle='#23262d';g.fillRect(0,0,S,S);
+  g.strokeStyle='#f0c02e';g.lineWidth=14;
+  for(let i=-S;i<S*2;i+=30){g.beginPath();g.moveTo(i,0);g.lineTo(i+S,S);g.stroke();}
+  const t=texFrom(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(1,90);
+  for(const x of CLOSED){
+    const m=new THREE.Mesh(new THREE.PlaneGeometry(2.4,420),
+      new THREE.MeshStandardMaterial({map:t,roughness:.9}));
+    m.rotation.x=-Math.PI/2;m.position.set(x,.03,-170);root.add(m);
+  }
+  /* 封鎖の境目にポール */
+  const pm=new THREE.MeshStandardMaterial({color:0xf0c02e,emissive:0x2a2000,roughness:.5});
+  for(let i=0;i<18;i++){
+    for(const x of CLOSED){
+      const p=new THREE.Mesh(new THREE.CylinderGeometry(.09,.11,.9,6),pm);
+      p.position.set(x*.78,.45,-i*24);root.add(p);
+      poles.push(p);
+    }
+  }
+})();
+
 /* 街灯・ビル（使い回し） */
 const lampMat=new THREE.MeshBasicMaterial({color:0xffe6b0});
 const poleMat=new THREE.MeshStandardMaterial({color:0x3a424c,roughness:.6,metalness:.5});
@@ -1342,7 +1613,7 @@ for(let i=0;i<16;i++){
   const l=new THREE.Mesh(new THREE.BoxGeometry(1,.2,.5),lampMat);
   l.position.set(-1.5,6.8,0);g.add(l);
   const s=i%2?1:-1;
-  g.position.set(s*(ROAD_W+2.6),0,-i*26);
+  g.position.set(s*(ROAD_W+2.9),0,-i*26);
   g.scale.x=s;
   g.userData.s=s;lamps.push(g);root.add(g);
 }
@@ -1367,38 +1638,40 @@ for(let i=0;i<18;i++){
 /* 車 */
 function makeCar(color,player){
   const g=new THREE.Group();
-  const body=new THREE.Mesh(new THREE.BoxGeometry(1.95,.52,4.4),
+  const body=new THREE.Mesh(new THREE.BoxGeometry(1.72,.5,4.2),
     new THREE.MeshPhysicalMaterial({color:color,roughness:.28,metalness:.5,clearcoat:1}));
   body.position.y=.62;body.castShadow=true;g.add(body);
-  const roof=new THREE.Mesh(new THREE.BoxGeometry(1.66,.5,2.1),
+  const roof=new THREE.Mesh(new THREE.BoxGeometry(1.46,.48,2.0),
     new THREE.MeshPhysicalMaterial({color:color,roughness:.28,metalness:.5,clearcoat:1}));
   roof.position.set(0,1.08,.1);roof.castShadow=true;g.add(roof);
-  const glass=new THREE.Mesh(new THREE.BoxGeometry(1.7,.42,2.14),
-    new THREE.MeshPhysicalMaterial({color:0x0d1620,roughness:.08,metalness:.3,clearcoat:1}));
-  glass.position.set(0,1.1,.1);g.add(glass);
+  if(player){
+    const glass=new THREE.Mesh(new THREE.BoxGeometry(1.5,.4,2.04),
+      new THREE.MeshPhysicalMaterial({color:0x0d1620,roughness:.08,metalness:.3,clearcoat:1}));
+    glass.position.set(0,1.1,.1);g.add(glass);
+  }
   const wm=new THREE.MeshStandardMaterial({color:0x14171b,roughness:.9});
   for(const sx of [-1,1])for(const sz of [-1,1]){
-    const w=new THREE.Mesh(new THREE.CylinderGeometry(.36,.36,.3,14),wm);
-    w.rotation.z=Math.PI/2;w.position.set(sx*.98,.36,sz*1.45);g.add(w);
+    const w=new THREE.Mesh(new THREE.CylinderGeometry(.34,.34,.28,14),wm);
+    w.rotation.z=Math.PI/2;w.position.set(sx*.86,.34,sz*1.38);g.add(w);
   }
   const tl=new THREE.MeshBasicMaterial({color:player?0xff3b2e:0xff2a1a});
   for(const sx of [-1,1]){
     const t=new THREE.Mesh(new THREE.BoxGeometry(.5,.16,.1),tl);
-    t.position.set(sx*.62,.72,2.22);g.add(t);
+    t.position.set(sx*.54,.7,2.12);g.add(t);
   }
   const hl=new THREE.MeshBasicMaterial({color:0xfff4d0});
   for(const sx of [-1,1]){
     const t=new THREE.Mesh(new THREE.BoxGeometry(.46,.16,.1),hl);
-    t.position.set(sx*.66,.7,-2.22);g.add(t);
+    t.position.set(sx*.58,.68,-2.12);g.add(t);
   }
   if(player){
-    const sp=new THREE.Mesh(new THREE.BoxGeometry(2,.1,.5),
+    const sp=new THREE.Mesh(new THREE.BoxGeometry(1.76,.1,.46),
       new THREE.MeshStandardMaterial({color:0x16181c,roughness:.4}));
-    sp.position.set(0,1.18,2.1);g.add(sp);
+    sp.position.set(0,1.14,2.02);g.add(sp);
     for(const sx of [-1,1]){
       const st=new THREE.Mesh(new THREE.BoxGeometry(.12,.34,.12),
         new THREE.MeshStandardMaterial({color:0x16181c}));
-      st.position.set(sx*.8,1,2.1);g.add(st);
+      st.position.set(sx*.7,.98,2.02);g.add(st);
     }
   }
   return g;
@@ -1406,34 +1679,81 @@ function makeCar(color,player){
 const player=makeCar(0xe8323c,true);player.position.set(0,0,0);root.add(player);
 const COLORS=[0x2f7fd4,0xf0c419,0xe8ecef,0x2b3138,0x53b36b,0xd98026,0x7a52c9,0xcfd6dc];
 const traffic=[];
-for(let i=0;i<22;i++){
+for(let i=0;i<16;i++){
   const c=makeCar(COLORS[i%COLORS.length],false);
   c.visible=false;traffic.push({o:c,lane:0,sp:0,z:0,active:false,passed:false});root.add(c);
 }
 /* 効果 */
+const laneMark=new THREE.Mesh(new THREE.PlaneGeometry(2.1,34),
+  new THREE.MeshBasicMaterial({color:0x6fd0ff,transparent:true,opacity:.13,
+    blending:THREE.AdditiveBlending,depthWrite:false}));
+laneMark.rotation.x=-Math.PI/2;laneMark.position.set(0,.05,-13);root.add(laneMark);
 const boostRing=new THREE.Mesh(new THREE.TorusGeometry(2.2,.12,8,28),
   new THREE.MeshBasicMaterial({color:0x6fd0ff,transparent:true,opacity:.6}));
 boostRing.position.set(0,1,-3);boostRing.visible=false;root.add(boostRing);
 
-let speed=40,px=0,tx=0,timeLeft=60,passes=0,near=0,crashes=0,spin=0,drafting=0,invul=0,uiT=0;
-function spawnCar(z){
-  for(const c of traffic){
-    if(c.active)continue;
-    c.active=true;c.passed=false;
-    c.lane=LANES[(Math.random()*LANES.length)|0];
-    c.sp=24+Math.random()*15;
-    c.z=z;
-    c.o.visible=true;
-    c.o.position.set(c.lane,0,z);
-    c.o.rotation.y=0;
-    return c;
+let dragX=0,dragged=0,laneIdx=2,corridor=2,rowsSpawned=0,sinceRow=0;
+let speed=40,px=LANES[2],timeLeft=60,passes=0,near=0,crashes=0,spin=0,drafting=0,invul=0,uiT=0;
+let cleanT=0,cleanMark=0,topSpeed=0;
+const _tmp=new THREE.Vector3();
+const laneScreen=[0,0,0,0];
+const _pv=new THREE.Vector3();
+function updateLaneScreen(){
+  const W=window.innerWidth;
+  for(let i=0;i<LANES.length;i++){
+    _pv.set(LANES[i],.4,-3).project(camera);
+    laneScreen[i]=(_pv.x*.5+.5)*W;
   }
+}
+function setLaneFromX(x){
+  if(state!=='play')return;
+  let best=0,bd=1e9;
+  for(let i=0;i<LANES.length;i++){
+    const d=Math.abs(x-laneScreen[i]);
+    if(d<bd){bd=d;best=i;}
+  }
+  if(best===laneIdx)return;
+  /* ヒステリシス：今の車線から十分離れないと変えない */
+  const gap=Math.abs(laneScreen[1]-laneScreen[0])||40;
+  if(Math.abs(x-laneScreen[laneIdx])<gap*.62)return;
+  laneIdx=best;
+  noise(.09,'bandpass',1500,700,.09,1.4);
+}
+function freeCar(){
+  for(const c of traffic)if(!c.active)return c;
   return null;
+}
+function spawnRow(z){
+  const diff=Math.min(1,(60-timeLeft)/45);
+  /* 抜け道は最大2車線ぶんまで動く（必ず通り道は続く） */
+  if(rowsSpawned>0){
+    const r=Math.random();
+    const d=r<.15?0:(r<.65?1:2);
+    if(d)corridor=Math.max(0,Math.min(LANES.length-1,corridor+(Math.random()<.5?-d:d)));
+  }
+  rowsSpawned++;
+  const sp=27+Math.random()*5;
+  /* 抜け道以外の5車線から2〜4台。必ず2車線以上は空く */
+  const pool=[];
+  for(let i=0;i<LANES.length;i++)if(i!==corridor)pool.push(i);
+  for(let i=pool.length-1;i>0;i--){const j=(Math.random()*(i+1))|0;const t=pool[i];pool[i]=pool[j];pool[j]=t;}
+  const n=Math.min(3,1+Math.floor(diff*1.5+Math.random()*1.8));
+  for(let k=0;k<n;k++){
+    const c=freeCar();if(!c)break;
+    const i=pool[k];
+    c.active=true;c.passed=false;c.lane=LANES[i];c.laneIdx=i;
+    c.sp=sp+(Math.random()-.5)*1.2;
+    c.z=z+(Math.random()-.5)*17;   /* 前後にばらけさせて横一直線を避ける */
+    c.o.visible=true;c.o.position.set(c.lane,0,c.z);c.o.rotation.y=0;
+  }
+  return n;
 }
 function clear(){
   traffic.forEach(c=>{c.active=false;c.o.visible=false;});
-  speed=40;px=tx=0;passes=0;near=0;crashes=0;spin=0;drafting=0;invul=0;
-  player.position.set(0,0,0);player.rotation.set(0,0,0);
+  speed=40;passes=0;near=0;crashes=0;spin=0;drafting=0;invul=0;
+  laneIdx=2;corridor=2;rowsSpawned=0;sinceRow=0;dragged=0;cleanT=0;cleanMark=0;topSpeed=0;
+  px=LANES[laneIdx];
+  player.position.set(px,0,0);player.rotation.set(0,0,0);
   boostRing.visible=false;
 }
 
@@ -1441,18 +1761,19 @@ MODES.racing={
   id:'racing',label:'スッキリ！ぶち抜きレース',root:root,
   theme:{id:'racing',back:0x0a0c14,glow:0x241a4a,fog:0x070810,under:0x6f7cff,rim:0x9fb4ff},
   uses:{lives:false,timer:true},swish:false,
-  howto:'<p>画面を<b>左右になぞって</b>ハンドル操作。指の位置に車が寄る。</p><p>前の車のすぐ後ろにつくと<b>スリップストリーム</b>で加速。ギリギリで抜くとニアミス加点。</p><p>ぶつかると大減速。60秒でどれだけぶち抜けるか。</p>',
+  howto:'<p>走るのは内側4車線。画面下のボタン（＝各車線の真下）を<b>タップ</b>するとその車線へ移動。なぞってもOK。</p><p>前の車のすぐ後ろにつくと<b>スリップストリーム</b>で加速。</p><p>ぶつからずに走り続けるほど最高速がどんどん上がる。ぶつかると大減速＋加速リセット。60秒でどれだけぶち抜けるか。</p>',
   enter(){
     clear();timeLeft=60;
     scene.fog.near=55;scene.fog.far=235;
     back.visible=false;glow.visible=false;dust.visible=false;
-    for(let i=0;i<15;i++)spawnCar(-24-i*12-Math.random()*8);
+    renderer.shadowMap.enabled=false;
+    for(let i=0;i<3;i++)spawnRow(-46-i*70);
     timerBar.style.width='100%';timerBar.classList.remove('low');
-    hint('指の位置にハンドルが寄る');
+    hint('行きたい車線のボタンをタップ',3.2);
   },
-  exit(){clear();back.visible=true;glow.visible=true;dust.visible=true;},
-  onDown(p){tx=THREE.MathUtils.clamp((p.x/window.innerWidth-.5)*2*ROAD_W*1.12,-ROAD_W,ROAD_W);},
-  onMove(a,b){tx=THREE.MathUtils.clamp((b.x/window.innerWidth-.5)*2*ROAD_W*1.12,-ROAD_W,ROAD_W);},
+  exit(){clear();back.visible=true;glow.visible=true;dust.visible=true;renderer.shadowMap.enabled=true;},
+  onDown(p){setLaneFromX(p.x);},
+  onMove(a,b){setLaneFromX(b.x);},
   update(dt,raw){
     if(state==='play'){
       timeLeft-=raw;
@@ -1461,16 +1782,29 @@ MODES.racing={
         if(Math.floor(timeLeft)!==Math.floor(timeLeft+raw))snd.tick();}
       if(timeLeft<=0){timeLeft=0;gameOver('チェッカー！');}
     }
-    /* 速度 */
-    const maxS=drafting>0?92:80;
-    const acc=(drafting>0?26:13)*(1-speed/maxS);
+    /* 速度：ぶつからずに走り続けるほど伸びる */
+    if(state==='play')cleanT+=raw;
+    const boost=Math.min(54,cleanT*1.8);
+    const maxS=(drafting>0?94:82)+boost;
+    const acc=(drafting>0?30:16)*(1-speed/maxS);
     speed=Math.max(16,Math.min(maxS,speed+acc*dt));
+    topSpeed=Math.max(topSpeed,speed);
     invul=Math.max(0,invul-raw);
-    /* ハンドル */
-    px+=(tx-px)*(1-Math.exp(-6.5*raw));
+    if(state==='play'&&cleanT>cleanMark+10){
+      cleanMark=Math.floor(cleanT/10)*10;
+      banner('ノーミス '+cleanMark+'秒！ さらに加速','#6fd0ff');
+      snd.combo(3);addScore(cleanMark*10);
+    }
+    /* 車線移動（1車線ずつ、なめらかに寄せる） */
+    const tgt=LANES[laneIdx];
+    const want=tgt-px;
+    const maxLat=15.5*raw;
+    px+=Math.abs(want)<=maxLat?want:Math.sign(want)*maxLat;
     player.position.x=px;
-    player.rotation.y=THREE.MathUtils.clamp((tx-px)*.09,-.3,.3)+spin;
-    player.rotation.z=THREE.MathUtils.clamp((tx-px)*-.05,-.16,.16);
+    laneMark.position.x=LANES[laneIdx];
+    laneMark.material.opacity=.10+Math.abs(Math.sin(elapsed*2.5))*.05;
+    player.rotation.y=THREE.MathUtils.clamp(want*.16,-.34,.34)+spin;
+    player.rotation.z=THREE.MathUtils.clamp(want*-.075,-.2,.2);
     if(spin!==0)spin*=Math.exp(-3.4*raw);
     player.position.y=Math.abs(Math.sin(elapsed*22))*.012;
     /* 路面スクロール */
@@ -1479,6 +1813,10 @@ MODES.racing={
       g.position.z+=speed*dt;
       if(g.position.z>BEHIND)g.position.z-=16*26;
     }
+    for(const p of poles){
+      p.position.z+=speed*dt;
+      if(p.position.z>BEHIND)p.position.z-=18*24;
+    }
     for(const b of bldgs){
       b.position.z+=speed*dt*.96;
       if(b.position.z>BEHIND+20){b.position.z-=18*24;
@@ -1486,33 +1824,32 @@ MODES.racing={
     }
     /* 交通 */
     drafting=Math.max(0,drafting-raw);
+    /* 相対距離で次の車列を送り出す */
+    if(state==='play'){
+      sinceRow+=Math.max(0,speed-29)*dt;
+      const dfc=Math.min(1,(60-timeLeft)/40);
+      if(sinceRow>(78-dfc*18)+Math.random()*16){sinceRow=0;spawnRow(FAR);}
+    }
     let ahead=null;
     for(const c of traffic){
       if(!c.active)continue;
       c.z+=(speed-c.sp)*dt;
       c.o.position.z=c.z;
       const dx=c.lane-px, dz=c.z;
-      if(Math.abs(dz)<3.4&&Math.abs(dx)<1.9&&invul<=0&&state==='play'){
+      if(Math.abs(dz)<2.9&&Math.abs(dx)<1.55&&invul<=0&&state==='play'){
         speed=Math.max(15,speed*.4);
-        crashes++;invul=1.0;spin=(dx>0?-1:1)*.55;
+        crashes++;invul=1.0;spin=(dx>0?-1:1)*.55;cleanT=0;cleanMark=0;
         shakeAdd(1.7);snd.bomb();whiteFlash(.2);
-        burst(new THREE.Vector3(px,1,dz-1),0xffb04a,34,5.5);
-        popup(new THREE.Vector3(px,1.8,dz-1),'ドン！','#ff9d7a',28);
+        burst(_tmp.set(px,1,dz-1),0xffb04a,34,5.5);
+        popup(_tmp.set(px,1.8,dz-1),'ドン！','#ff9d7a',28);
         c.z-=7;c.o.position.z=c.z;
       }
       if(!c.passed&&dz>2.6){
         c.passed=true;passes++;
-        let pts=10;
-        if(Math.abs(dx)<2.9){near++;pts+=15;
-          popup(new THREE.Vector3(c.lane,1.6,2),'ニアミス！ +25','#6fd0ff',24);
-          snd.slice(2);shakeAdd(.22);}
-        addScore(pts);
+        addScore(10);
       }
-      if(dz>BEHIND+8){
-        c.active=false;c.o.visible=false;
-        spawnCar(FAR-Math.random()*55);
-      }
-      if(dz<-3&&dz>-17&&Math.abs(dx)<1.8){ahead=c;}
+      if(dz>BEHIND+8){c.active=false;c.o.visible=false;}
+      if(dz<-3&&dz>-17&&Math.abs(dx)<1.5){ahead=c;}
     }
     if(ahead&&invul<=0){
       drafting=.25;
@@ -1520,21 +1857,47 @@ MODES.racing={
       boostRing.position.set(px,1,-3.2);
       boostRing.scale.setScalar(.8+Math.sin(elapsed*16)*.12);
       boostRing.material.opacity=.35+Math.sin(elapsed*16)*.2;
-      if(Math.random()<dt*40)burst(new THREE.Vector3(px+(Math.random()-.5)*2,.6,2.4),0x6fd0ff,1,1.6);
+      if(Math.random()<dt*40)burst(_tmp.set(px+(Math.random()-.5)*2,.6,2.4),0x6fd0ff,1,1.6);
     }else boostRing.visible=false;
     /* カメラ */
-    const sp01=(speed-40)/50;
+    const sp01=Math.min(1.25,(speed-40)/62);
     camWant.set(px*.5+Math.sin(elapsed*.7)*.06,2.7+sp01*.25,8.4-sp01*.9);
     lookWant.set(px*.72,1.15,-15);
-    fovWant=54+sp01*22;
+    fovWant=54+sp01*26;
     camLag=5.5;
-    if(speed>74)shakeAdd(raw*.5);
+    if(speed>78)shakeAdd(raw*.8);
     /* HUD */
+    updateLaneScreen();
     uiT+=raw;
-    if(uiT>.1){uiT=0;setStep(Math.round(speed*3.6)+' km/h　'+passes+'台');}
+    if(uiT>.1){uiT=0;setStep(Math.round(speed*3.6)+' km/h　'+passes+'台'+(boost>4?'　🔥':''));}
   },
   draw2d(){
-    const s=(speed-58)/26;
+    if(state==='play'){
+      const W=window.innerWidth,H=window.innerHeight;
+      const y=H-Math.max(66,H*.095),h=14;
+      const gap=Math.abs(laneScreen[1]-laneScreen[0])||W/4;
+      fctx.save();
+      const bnd=[0];
+      for(let i=1;i<LANES.length;i++)bnd.push((laneScreen[i-1]+laneScreen[i])/2);
+      bnd.push(W);
+      for(let i=0;i<LANES.length;i++){
+        const x0=bnd[i]+3,x1=bnd[i+1]-3;
+        if(i===laneIdx){
+          fctx.fillStyle='rgba(111,208,255,.9)';
+          fctx.fillRect(x0,y-5,x1-x0,h+10);
+          fctx.fillStyle='#06121c';
+          fctx.beginPath();
+          const cx=laneScreen[i];
+          fctx.moveTo(cx,y-2);fctx.lineTo(cx+8,y+h+4);fctx.lineTo(cx-8,y+h+4);
+          fctx.closePath();fctx.fill();
+        }else{
+          fctx.fillStyle='rgba(255,255,255,.16)';
+          fctx.fillRect(x0,y,x1-x0,h);
+        }
+      }
+      fctx.restore();
+    }
+    const s=(speed-62)/34;
     if(s<=0)return;
     const W=window.innerWidth,H=window.innerHeight,cx=W*.5,cy=H*.46;
     fctx.save();fctx.globalCompositeOperation='lighter';
@@ -1549,7 +1912,7 @@ MODES.racing={
     }
     fctx.restore();
   },
-  overStats(){return 'ぶち抜き '+passes+'台　ニアミス '+near+'回　クラッシュ '+crashes+'回';}
+  overStats(){return 'ぶち抜き '+passes+'台　最高 '+Math.round(topSpeed*3.6)+'km/h　クラッシュ '+crashes+'回';}
 };
 })();
 
@@ -1562,8 +1925,23 @@ document.querySelectorAll('.item[data-mode]').forEach(function(el){
 document.getElementById('htGo').onclick=function(){if(pendingMode)startMode(pendingMode);};
 document.getElementById('againBtn').onclick=function(){startMode(mode.id);};
 document.getElementById('homeBtn').onclick=toTitle;
-document.getElementById('quit').onclick=function(){
-  if(state==='play')gameOver('とちゅうでやめた');else toTitle();
+let quitArm=0;
+const quitBtn=document.getElementById('quit');
+quitBtn.onclick=function(){
+  if(state!=='play'){toTitle();return;}
+  const now=performance.now();
+  if(quitArm&&now-quitArm<2600){
+    quitArm=0;quitBtn.textContent='やめる';quitBtn.classList.remove('warn');
+    gameOver('とちゅうでやめた');
+  }else{
+    quitArm=now;quitBtn.textContent='もう一度で終了';quitBtn.classList.add('warn');
+    snd.ui();
+    setTimeout(function(){
+      if(quitArm&&performance.now()-quitArm>=2500){
+        quitArm=0;quitBtn.textContent='やめる';quitBtn.classList.remove('warn');
+      }
+    },2700);
+  }
 };
 document.getElementById('sound').onclick=function(){
   muted=!muted;this.textContent=muted?'🔇':'🔊';this.style.opacity=muted?.4:.7;
@@ -1573,6 +1951,7 @@ titleScreen.addEventListener('click',function(e){
 });
 
 let last=performance.now();
+let fpsAcc=0,fpsN=0,curDPR=DPR,dprCool=0;
 function frame(now){
   requestAnimationFrame(frame);
   let raw=Math.min(.05,(now-last)/1000);last=now;
@@ -1582,6 +1961,23 @@ function frame(now){
   elapsed+=dt;
 
   if(mode)mode.update(dt,raw);
+
+  /* 描画負荷が高いときは解像度を落として滑らかさを優先 */
+  fpsAcc+=raw;fpsN++;dprCool-=raw;
+  if(fpsN>=45){
+    const avg=fpsAcc/fpsN;fpsAcc=0;fpsN=0;
+    if(dprCool<=0){
+      if(avg>1/46&&curDPR>1){
+        curDPR=Math.max(1,curDPR-.25);
+        renderer.setPixelRatio(curDPR);renderer.setSize(window.innerWidth,window.innerHeight,false);
+        dprCool=1.5;
+      }else if(avg<1/58&&curDPR<DPR){
+        curDPR=Math.min(DPR,curDPR+.25);
+        renderer.setPixelRatio(curDPR);renderer.setSize(window.innerWidth,window.innerHeight,false);
+        dprCool=3;
+      }
+    }
+  }
 
   /* 粒子 */
   let dirty=false;
